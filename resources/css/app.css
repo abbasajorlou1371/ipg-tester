@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@theme {
+    --font-sans: 'Vazirmatn', Tahoma, ui-sans-serif, system-ui, sans-serif;
+    --color-melli: #0b2e6b;
+    --color-melli-dark: #071e48;
+}
