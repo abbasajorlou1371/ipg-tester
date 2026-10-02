@@ -446,6 +446,62 @@ test('does not verify when the callback result is unsuccessful', function () {
     Http::assertNothingSent();
 });
 
+test('verifies a gateway return sent as a get request', function () {
+    Http::preventStrayRequests();
+
+    $payment = Payment::factory()->redirected()->create([
+        'token' => 'gateway-token',
+    ]);
+
+    Http::fake([
+        'https://sadad.shaparak.ir/api/v0/Advice/Verify' => Http::response([
+            'ResCode' => 0,
+            'Description' => 'عملیات با موفقیت انجام شد',
+            'RetrivalRefNo' => '987654321',
+            'SystemTraceNo' => '123456',
+            'Amount' => 150000,
+            'OrderId' => (int) $payment->order_id,
+        ]),
+    ]);
+
+    $this->get(route('payments.callback', [
+        'OrderId' => $payment->order_id,
+        'Token' => 'gateway-token',
+        'ResCode' => '0',
+    ]))->assertRedirect(route('payments.show', $payment));
+
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Paid);
+});
+
+test('verifies the callback when plus signs in the token were decoded as spaces', function () {
+    Http::preventStrayRequests();
+
+    $payment = Payment::factory()->redirected()->create([
+        'token' => 'abc+def/ghi=',
+    ]);
+
+    Http::fake([
+        'https://sadad.shaparak.ir/api/v0/Advice/Verify' => Http::response([
+            'ResCode' => 0,
+            'Description' => 'عملیات با موفقیت انجام شد',
+            'RetrivalRefNo' => '987654321',
+            'SystemTraceNo' => '123456',
+            'Amount' => 150000,
+            'OrderId' => (int) $payment->order_id,
+        ]),
+    ]);
+
+    $this->post(route('payments.callback'), [
+        'OrderId' => $payment->order_id,
+        'Token' => 'abc def/ghi=',
+        'ResCode' => '0',
+    ])->assertRedirect(route('payments.show', $payment));
+
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Paid);
+
+    Http::assertSent(fn (Request $request) => $request['Token'] === 'abc+def/ghi=');
+});
+
 test('returns 404 when the callback token does not match', function () {
     Http::preventStrayRequests();
 

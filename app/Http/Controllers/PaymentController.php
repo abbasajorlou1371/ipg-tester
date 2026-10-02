@@ -85,33 +85,33 @@ class PaymentController extends Controller
 
     public function callback(Request $request, SadadGateway $gateway): RedirectResponse
     {
-        $payment = Payment::query()
-            ->where('order_id', $request->string('OrderId')->toString())
-            ->first();
+        $token = $this->callbackField($request, 'Token');
+        $orderId = $this->callbackField($request, 'OrderId');
+        $payment = $this->paymentFromCallback($token, $orderId);
 
-        $token = $request->string('Token')->toString();
-
-        if ($payment === null || $payment->token === null || $token === '' || ! hash_equals($payment->token, $token)) {
+        if ($payment === null) {
             abort(404);
         }
 
-        $payment->callback_response = $request->only([
-            'OrderId',
-            'HashedCardNo',
-            'PrimaryAccNo',
-            'SwitchResCode',
-            'ResCode',
-            'CardHolderFullName',
-            'Token',
-            'Description',
-        ]);
+        $callback = array_filter([
+            'OrderId' => $orderId,
+            'HashedCardNo' => $this->callbackField($request, 'HashedCardNo'),
+            'PrimaryAccNo' => $this->callbackField($request, 'PrimaryAccNo'),
+            'SwitchResCode' => $this->callbackField($request, 'SwitchResCode'),
+            'ResCode' => $this->callbackField($request, 'ResCode'),
+            'CardHolderFullName' => $this->callbackField($request, 'CardHolderFullName'),
+            'Token' => $token,
+            'Description' => $this->callbackField($request, 'Description'),
+        ], fn (string $value): bool => $value !== '');
 
-        if (! $gateway->callbackSucceeded($request->input('ResCode'))) {
+        $payment->callback_response = $callback;
+
+        if (! $gateway->callbackSucceeded($callback['ResCode'] ?? null)) {
             $payment->fill([
                 'status' => PaymentStatus::Failed,
                 'res_code' => $this->resCode($payment->callback_response),
                 'message' => $this->description($payment->callback_response),
-                'card_holder_full_name' => $request->input('CardHolderFullName'),
+                'card_holder_full_name' => $callback['CardHolderFullName'] ?? null,
             ])->save();
 
             return redirect()->route('payments.show', $payment);
@@ -138,7 +138,7 @@ class PaymentController extends Controller
             'system_trace_no' => $this->stringValue($verify, 'SystemTraceNo'),
             'transaction_date' => $this->stringValue($verify, 'TransactionDate'),
             'card_holder_full_name' => $this->stringValue($verify, 'CardHolderFullName')
-                ?? ($request->filled('CardHolderFullName') ? $request->string('CardHolderFullName')->toString() : null),
+                ?? ($callback['CardHolderFullName'] ?? null),
         ])->save();
 
         return redirect()->route('payments.show', $payment);
@@ -150,6 +150,43 @@ class PaymentController extends Controller
             'payment' => $payment,
             'rows' => $this->resultRows($payment),
         ]);
+    }
+
+    private function paymentFromCallback(string $token, string $orderId): ?Payment
+    {
+        if ($token === '') {
+            return null;
+        }
+
+        $payment = Payment::query()->where('token', $token)->first();
+
+        if ($payment === null || ($orderId !== '' && $payment->order_id !== $orderId)) {
+            return null;
+        }
+
+        return $payment;
+    }
+
+    /**
+     * Form bodies decode a Base64 "+" as a space, which would not match the stored token.
+     */
+    private function callbackField(Request $request, string $key): string
+    {
+        foreach ($request->all() as $name => $value) {
+            if (! is_string($name) || strcasecmp($name, $key) !== 0 || is_array($value)) {
+                continue;
+            }
+
+            $normalized = trim((string) $value);
+
+            if (strcasecmp($key, 'Token') === 0) {
+                return str_replace(' ', '+', $normalized);
+            }
+
+            return $normalized;
+        }
+
+        return '';
     }
 
     /**
