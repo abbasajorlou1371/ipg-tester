@@ -55,7 +55,7 @@
 
             <button
                 type="submit"
-                class="rounded-lg bg-melli px-4 py-2.5 font-medium text-white hover:bg-melli-dark dark:bg-sky-600 dark:hover:bg-sky-500"
+                class="rounded-lg bg-melli px-4 py-2.5 cursor-pointer font-medium text-white hover:bg-melli-dark dark:bg-sky-600 dark:hover:bg-sky-500"
             >
                 پرداخت
             </button>
