@@ -31,6 +31,18 @@ class PaymentController extends Controller
         'PrimaryAccNo' => 'شماره کارت',
     ];
 
+    public function index(): View
+    {
+        $payments = Payment::query()
+            ->select(['id', 'order_id', 'amount', 'status', 'message', 'created_at'])
+            ->latest()
+            ->paginate(15);
+
+        return view('payments.index', [
+            'payments' => $payments,
+        ]);
+    }
+
     public function create(): View
     {
         return view('payments.create');

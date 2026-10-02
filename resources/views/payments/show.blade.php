@@ -30,11 +30,19 @@
             </dl>
         @endif
 
-        <a
-            href="{{ route('payments.create') }}"
-            class="text-center text-sm font-medium text-melli hover:underline dark:text-sky-300"
-        >
-            پرداخت جدید
-        </a>
+        <div class="flex items-center justify-center gap-4">
+            <a
+                href="{{ route('payments.index') }}"
+                class="text-sm font-medium text-melli hover:underline dark:text-sky-300"
+            >
+                فهرست پرداخت‌ها
+            </a>
+            <a
+                href="{{ route('payments.create') }}"
+                class="text-sm font-medium text-melli hover:underline dark:text-sky-300"
+            >
+                پرداخت جدید
+            </a>
+        </div>
     </section>
 </x-layouts.app>

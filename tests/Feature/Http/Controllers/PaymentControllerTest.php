@@ -23,6 +23,76 @@ beforeEach(function () {
     ]);
 });
 
+test('shows an empty payments list', function () {
+    $this->get(route('payments.index'))
+        ->assertOk()
+        ->assertSee('فهرست پرداخت‌ها')
+        ->assertSee('هنوز پرداختی ثبت نشده است.')
+        ->assertSee(route('payments.create'), false);
+});
+
+test('lists payments from newest to oldest', function () {
+    $older = Payment::factory()->create([
+        'order_id' => '1111111111111111',
+        'amount' => 1000,
+        'message' => 'در انتظار پرداخت',
+        'created_at' => '2026-10-01 10:00:00',
+    ]);
+    $newer = Payment::factory()->create([
+        'order_id' => '2222222222222222',
+        'amount' => 2500000,
+        'status' => PaymentStatus::Paid,
+        'created_at' => '2026-10-02 10:30:00',
+    ]);
+
+    $this->get(route('payments.index'))
+        ->assertOk()
+        ->assertSeeInOrder([
+            '2222222222222222',
+            'موفق',
+            '2,500,000',
+            '2026-10-02 10:30',
+            '1111111111111111',
+            'در انتظار',
+            '1,000',
+            '2026-10-01 10:00',
+            'در انتظار پرداخت',
+        ])
+        ->assertSee(route('payments.show', $newer), false)
+        ->assertSee(route('payments.show', $older), false);
+});
+
+test('escapes payment messages on the payments list', function () {
+    Payment::factory()->create([
+        'message' => "<script>alert('xss')</script>",
+    ]);
+
+    $this->get(route('payments.index'))
+        ->assertOk()
+        ->assertSee('&lt;script&gt;', false)
+        ->assertDontSee("<script>alert('xss')</script>", false);
+});
+
+test('paginates the payments list', function () {
+    Payment::factory()
+        ->count(16)
+        ->sequence(fn ($sequence): array => [
+            'order_id' => (string) (1000000000000000 + $sequence->index),
+            'created_at' => now()->subMinutes($sequence->index),
+        ])
+        ->create();
+
+    $this->get(route('payments.index'))
+        ->assertOk()
+        ->assertSee('1000000000000000')
+        ->assertDontSee('1000000000000015');
+
+    $this->get(route('payments.index', ['page' => 2]))
+        ->assertOk()
+        ->assertSee('1000000000000015')
+        ->assertDontSee('1000000000000000');
+});
+
 test('renders the payment form', function () {
     $this->get(route('payments.create'))
         ->assertOk()

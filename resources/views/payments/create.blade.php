@@ -4,6 +4,7 @@
             <p class="text-sm font-medium text-melli dark:text-sky-300">بانک ملی ایران</p>
             <h1 class="text-2xl font-bold">آزمایش درگاه پرداخت سداد</h1>
             <p class="text-sm text-slate-600 dark:text-slate-400">مبلغ را به ریال وارد کنید و شماره سفارش ۱۶ رقمی بسازید.</p>
+            <a href="{{ route('payments.index') }}" class="text-sm font-medium text-melli hover:underline dark:text-sky-300">فهرست پرداخت‌ها</a>
         </header>
 
         <form method="POST" action="{{ route('payments.store') }}" class="flex flex-col gap-5">

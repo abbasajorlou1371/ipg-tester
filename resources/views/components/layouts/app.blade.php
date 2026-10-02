@@ -12,7 +12,11 @@
         @endif
     </head>
     <body class="min-h-screen bg-slate-100 font-sans text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
-        <main class="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-4 py-10">
+        <main @class([
+            'mx-auto flex min-h-screen w-full flex-col px-4 py-10',
+            'max-w-lg justify-center' => ! ($wide ?? false),
+            'max-w-3xl' => (bool) ($wide ?? false),
+        ])>
             {{ $slot }}
         </main>
     </body>
