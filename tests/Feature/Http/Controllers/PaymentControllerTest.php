@@ -78,6 +78,31 @@ test('rejects an amount that is not a whole number of rials', function () {
     Http::assertNothingSent();
 });
 
+test('stores an amount entered with thousand separators', function () {
+    Http::preventStrayRequests();
+    $this->travelTo('2026-10-02 12:00:00');
+
+    Http::fake([
+        'https://sadad.shaparak.ir/api/v0/Request/PaymentRequest' => Http::response([
+            'ResCode' => 0,
+            'Token' => 'test-token',
+            'Description' => 'تراکنش موفق',
+        ]),
+    ]);
+
+    $this->post(route('payments.store'), [
+        'amount' => '150,000',
+        'order_id' => '1234567890123456',
+    ])->assertRedirect('https://sadad.shaparak.ir/Purchase?Token=test-token');
+
+    $this->assertDatabaseHas('payments', [
+        'order_id' => '1234567890123456',
+        'amount' => 150000,
+    ]);
+
+    Http::assertSent(fn (Request $request) => $request['Amount'] === 150000);
+});
+
 test('rejects an amount below one rial', function () {
     Http::preventStrayRequests();
 

@@ -12,6 +12,19 @@ class StorePaymentRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (! $this->exists('amount') || is_array($this->input('amount'))) {
+            return;
+        }
+
+        $amount = preg_replace('/[,\s\x{00A0}\x{066C}]/u', '', (string) $this->input('amount'));
+
+        $this->merge([
+            'amount' => $amount,
+        ]);
+    }
+
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */

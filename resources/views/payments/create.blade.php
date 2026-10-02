@@ -63,6 +63,32 @@
     </section>
 
     <script>
+        const amountInput = document.getElementById('amount');
+
+        const formatAmount = () => {
+            const caret = amountInput.selectionStart ?? amountInput.value.length;
+            const digitsBeforeCaret = amountInput.value.slice(0, caret).replace(/\D/g, '').length;
+            const digits = amountInput.value.replace(/\D/g, '');
+
+            amountInput.value = digits === '' ? '' : Number(digits).toLocaleString('en-US');
+
+            let nextCaret = 0;
+            let seenDigits = 0;
+
+            while (nextCaret < amountInput.value.length && seenDigits < digitsBeforeCaret) {
+                if (/\d/.test(amountInput.value.charAt(nextCaret))) {
+                    seenDigits += 1;
+                }
+
+                nextCaret += 1;
+            }
+
+            amountInput.setSelectionRange(nextCaret, nextCaret);
+        };
+
+        amountInput.addEventListener('input', formatAmount);
+        formatAmount();
+
         document.getElementById('generate-order-id').addEventListener('click', () => {
             const firstDigit = Math.floor(Math.random() * 9) + 1;
             let orderId = String(firstDigit);
